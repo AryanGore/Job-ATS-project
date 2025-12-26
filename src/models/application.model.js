@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const historyScehma = new mongoose.Model(
+const historySchema = new mongoose.Schema(
     {
         action: {
             type: String,
@@ -23,7 +23,7 @@ const historyScehma = new mongoose.Model(
 
         timestamp: {
             type: Date,
-            default: Date.now()
+            default: Date.now
         }
     },
 
@@ -56,7 +56,7 @@ const applicationSchema = new mongoose.Schema(
             default: null
         },
 
-        history: [historyScehma]
+        history: [historySchema]
 
     },
 

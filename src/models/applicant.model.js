@@ -41,4 +41,4 @@ const applicantSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
-export const Appplicant = mongoose.model("Applicant", applicantSchema);
+export const Applicant = mongoose.model("Applicant", applicantSchema);
