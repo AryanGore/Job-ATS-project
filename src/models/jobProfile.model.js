@@ -32,7 +32,7 @@ const jobProfileSchema = new mongoose.Schema(
 
         description: {
             type: String,
-            reuired: true,
+            required: true,
         },
 
         jobStages: {
@@ -57,4 +57,4 @@ const jobProfileSchema = new mongoose.Schema(
     }
 )
 
-export const JobProfile = mongoose.Model("JobProfile", jobProfileSchema);
+export const JobProfile = mongoose.model("JobProfile", jobProfileSchema);
