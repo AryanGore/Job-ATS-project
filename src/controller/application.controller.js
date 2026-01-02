@@ -171,3 +171,48 @@ export const hireApplication = asyncHandler(async(req, res) => {
     )
 
 })
+
+export const getAllApplications = asyncHandler( async (req, res) => {
+    
+    const applications = await Application.find().populate('appliedby').populate('appliedto');
+
+    return res.status(200).json(
+        new ApiResponse(200, applications, "All Applications fetched.")
+    );    
+})
+
+export const getSingleApplication = asyncHandler(async(req, res) => {
+    const { id } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(id)){
+        throw new ApiError(400, "Invalid Application Id");
+    }
+
+    const application = await Application.findById(id).populate('appliedby').populate('appliedto');
+
+    if(!application){
+        throw new ApiError(404, "Application Not Found.");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, application, "Application Fetched Successfully")
+    )
+})
+
+
+export const getFilteredApplication = asyncHandler(async(req, res) => {
+    const { terminalStatus, jobId, applicantId } = req.query;
+
+    const filter = {};
+    if(terminalStatus) filter.terminalStatus = terminalStatus;
+    if(jobId) filter.appliedto = jobId;
+    if(applicantId) filter.appliedby = applicantId;
+
+    const filteredApplications = await Application.find(filter).populate('appliedby').populate('appliedto');
+
+    return res.status(200).json(
+        new ApiResponse(200, filteredApplications, "Filtered Applications Fetched Successfully.")
+    )
+
+})
+
