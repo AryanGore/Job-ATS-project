@@ -1,18 +1,24 @@
 import { Router } from "express";
 import { advanceApplicationStage, rejectApplication, withdrawApplication , getAllApplications 
     , getSingleApplication,
-    hireApplication
+    hireApplication,
+    getFilteredApplication
 } from '../controller/application.controller.js';
+
+import { verifyJwt } from "../middleware/auth.middleware.js";
+import { authorizeRoles } from "../middleware/authorizeRoles.middleware.js";
 
 const router = Router();
 
 //endpoints
-router.patch('/:id/advance', advanceApplicationStage); //recruiter Action.
-router.patch('/:id/reject', rejectApplication); //recruiter Action.
-router.patch('/:id/withdraw', withdrawApplication); // Applicant action.
-router.patch('/:id/hire', hireApplication);
+router.patch('/:id/advance',verifyJwt, authorizeRoles("ADMIN"), advanceApplicationStage); //recruiter Action.
+router.patch('/:id/reject',verifyJwt, authorizeRoles("ADMIN"), rejectApplication); //recruiter Action.
+router.patch('/:id/withdraw',verifyJwt, authorizeRoles("APPLICANT"), withdrawApplication); // Applicant action.
+router.patch('/:id/hire',verifyJwt, authorizeRoles("ADMIN"), hireApplication);
 
-router.get('/', getAllApplications);
-router.get('/:id', getSingleApplication); 
+router.get('/',verifyJwt, authorizeRoles("ADMIN" , "APPLICANT"), getAllApplications);
+router.get('/:id',verifyJwt, authorizeRoles("APPLICANT", "ADMIN"), getSingleApplication); 
+router.get('/filter', verifyJwt, authorizeRoles("ADMIN", "APPLICANT"), getFilteredApplication);
+
 
 export default router;

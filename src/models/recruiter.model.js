@@ -23,7 +23,8 @@ const recruiterSchema = new mongoose.Schema({
 
     passwordHash: {
         type: String,
-        required: true
+        required: true,
+        select: false
     },
 
     role: {
@@ -31,9 +32,26 @@ const recruiterSchema = new mongoose.Schema({
         enum: ["ADMIN"],
         default: "ADMIN",
         immutable: true
+    },
+
+
+    refreshToken: {
+        type: String,
+        select: false,
     }
 },
 {timestamps: true})
+
+recruiterSchema.pre('save', async function(next){
+    if(!this.isModified('passwordHash')) return next();
+
+    await bcrypt.hash(this.passwordHash, 10);
+    next();
+})
+
+recruiterSchema.methods.comparePassword = async function(password){
+    return bcrypt.compare(this.passwordHash, password);
+}
 
 
 export const Recruiter = mongoose.model("Recruiter" , recruiterSchema);

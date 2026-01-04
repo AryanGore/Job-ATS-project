@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from "bcrypt";
 
 const applicantSchema = new mongoose.Schema(
     {
@@ -18,7 +19,8 @@ const applicantSchema = new mongoose.Schema(
 
         passwordHash: {
             type: String,
-            required: true
+            required: true,
+            select: false
         },
 
         resumeURL: {
@@ -34,11 +36,27 @@ const applicantSchema = new mongoose.Schema(
 
         optionalContactInfo: {
             type: Object
+        },
+
+        refreshToken: {
+            type: String,
+            select: false
         }
 
 
     },
     { timestamps: true }
 )
+
+applicantSchema.pre('save', async function(next) {
+    if(!this.isModified('passwordHash')) return next();
+
+    this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
+    next();
+})
+
+applicantSchema.methods.comparePassword = async function(password){
+    return bcrypt.compare(password, this.passwordHash);
+}
 
 export const Applicant = mongoose.model("Applicant", applicantSchema);
