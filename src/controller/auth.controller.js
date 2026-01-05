@@ -2,7 +2,7 @@ import { Applicant } from "../models/applicant.model.js";
 import { Recruiter } from "../models/recruiter.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+import  asyncHandler  from "../utils/asyncHandler.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
@@ -98,7 +98,8 @@ export const refreshApplicantAccessToken = asyncHandler(async(req, res) => {
         throw new ApiError(401, "Invalid or Expired Refresh Token.");
     }
 
-    const applicant = await Applicant.findById(decoded.id);
+    const applicant = await Applicant.findById(decoded.id).select("+refreshToken");
+
 
     if(!applicant || applicant.refreshToken !== incomingRefreshToken){
         throw new ApiError(401, "Refresh token is Invalid or Revoked.");
@@ -151,9 +152,11 @@ export const recruiterLogin = asyncHandler(async (req, res) => {
     if (!email || !password) throw new ApiError(400, "Please enter email and password.");
 
     const recruiter = await Recruiter.findOne({ email }).select("+passwordHash");
-    if (!recruiter) throw new ApiError(401, "Invalid email or password");
+
+    if (!recruiter) throw new ApiError(401, "Invalid email");
 
     const isValidPassword = await recruiter.comparePassword(password);
+
     if (!isValidPassword) throw new ApiError(401, "Invalid email or password");
 
     const payload = { id: recruiter._id, role: "RECRUITER" };
@@ -194,17 +197,24 @@ export const refreshRecruiterAccessToken = asyncHandler(async (req, res) => {
 
     let decoded;
     try {
-        decoded = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+        decoded = jwt.verify(incomingRefreshToken, process.env.JWT_REFRESH_SECRET);
     } catch {
+        // console.log("API response : ",incomingRefreshToken);
+
+        // const recruiter = await Recruiter.findOne({_id: "695be8199acc3af9e1ea25b0"}).select("+refreshToken");
+        
+        // console.log("Datavase response : ", recruiter.refreshToken); // debugging.
+        
         throw new ApiError(401, "Invalid or expired refresh token");
     }
 
-    const recruiter = await Recruiter.findById(decoded.id);
+    const recruiter = await Recruiter.findById(decoded.id).select("+refreshToken");
+
     if (!recruiter || recruiter.refreshToken !== incomingRefreshToken) {
         throw new ApiError(401, "Refresh token is invalid or revoked");
     }
 
-    const payload = { id: recruiter._id, role: "RECRUITER" };
+    const payload = { id: recruiter._id, role: "ADMIN" };
     const newAccessToken = generateAccessToken(payload);
 
     return res.status(200).json(

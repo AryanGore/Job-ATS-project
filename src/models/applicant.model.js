@@ -19,8 +19,8 @@ const applicantSchema = new mongoose.Schema(
 
         passwordHash: {
             type: String,
-            required: true,
-            select: false
+            select: false,
+            required: true
         },
 
         resumeURL: {
@@ -48,11 +48,13 @@ const applicantSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
-applicantSchema.pre('save', async function(next) {
-    if(!this.isModified('passwordHash')) return next();
+applicantSchema.pre('save', async function() {
+    if(!this.isModified('passwordHash')) return;
 
+    if(!this.passwordHash) return;
+    // console.log("Value to hash:", this.passwordHash);
     this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
-    next();
+    // next(); // caused next is not a function error.
 })
 
 applicantSchema.methods.comparePassword = async function(password){

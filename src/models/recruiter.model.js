@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from "bcrypt";
 
 const recruiterSchema = new mongoose.Schema({
     name: {
@@ -23,8 +24,8 @@ const recruiterSchema = new mongoose.Schema({
 
     passwordHash: {
         type: String,
-        required: true,
-        select: false
+        select: false,
+        required: true
     },
 
     role: {
@@ -42,15 +43,14 @@ const recruiterSchema = new mongoose.Schema({
 },
 {timestamps: true})
 
-recruiterSchema.pre('save', async function(next){
-    if(!this.isModified('passwordHash')) return next();
+recruiterSchema.pre('save', async function(){
+    if(!this.isModified('passwordHash')) return;
 
     await bcrypt.hash(this.passwordHash, 10);
-    next();
 })
 
 recruiterSchema.methods.comparePassword = async function(password){
-    return bcrypt.compare(this.passwordHash, password);
+    return bcrypt.compare(password, this.passwordHash); // order matters always ! (password tocheck , password in document);
 }
 
 

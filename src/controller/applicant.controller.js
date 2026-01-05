@@ -1,46 +1,70 @@
 import mongoose from "mongoose";
-import { asyncHandler } from '../utils/asyncHandler.js';
+import  asyncHandler  from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 import { Applicant } from "../models/applicant.model.js";
 import { Application } from "../models/application.model.js";
+import { generateAccessToken,generateRefreshToken } from "../utils/token.js";
 
-export const createApplicant = asyncHandler(async(req , res) => {
-    //get name, email , password (in db :  passwordHash) storing password raw for now.
-    //validate if all the above fields are present or not
-    //create Applicant in DB
-    // return response.
+export const createApplicant = asyncHandler(async (req, res) => {
+    const { name, email, password } = req.body;
 
-    const {name , email , passwordHash} = req.body;
-
-    if(!name || !email || !passwordHash){
-        throw new ApiError(400 , "name, email and password is required.");
+    if (!name || !email || !password) {
+        throw new ApiError(400, "Name, email, and password are required.");
     }
 
-    if(name.trim() === "" || email.trim() === "" || passwordHash.trim() === ""){
-        throw new ApiError(400 , "Fields Cannot be empty");
+    if (name.trim() === "" || email.trim() === "" || password.trim() === "") {
+        throw new ApiError(400, "Fields cannot be empty.");
     }
 
-    const createdApplicant = await Applicant.create(
-        {
-            name,
-            email,
-            passwordHash
-        }
-    )
 
-    const applicantResponse = {
+    const existingApplicant = await Applicant.findOne({ email });
+
+    if (existingApplicant) {
+        throw new ApiError(409, "Email already in use.");
+    }
+
+    const createdApplicant = await Applicant.create({
+        name,
+        email,
+        passwordHash: password
+    });
+
+    const payload = {
+        id: createdApplicant._id,
+        role: "APPLICANT",
+    };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    createdApplicant.refreshToken = refreshToken;
+    await createdApplicant.save();
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    };
+
+    const safeApplicant = {
         _id: createdApplicant._id,
         name: createdApplicant.name,
         email: createdApplicant.email,
         resumeURL: createdApplicant.resumeURL,
-        createdAt: createdApplicant.createdAt
-    }
+        createdAt: createdApplicant.createdAt,
+    };
 
-    return res.status(201).json(
-        new ApiResponse(201, applicantResponse, "Applicant created Successfully.")
-    )
-})
+
+    return res.status(201).cookie("refreshToken", refreshToken, cookieOptions).json(
+            new ApiResponse(
+                201,
+                { token: accessToken, applicant: safeApplicant },
+                "Applicant signed up successfully."
+            )
+        );
+});
 
 
 export const applyToJob = asyncHandler( async(req, res)=> {
