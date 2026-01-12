@@ -13,7 +13,7 @@ const recruiterSchema = new mongoose.Schema({
         required: true,
         trim: true,
         unique: true,
-        lowercase: true 
+        lowercase: true
     },
 
     CompanyName: {
@@ -41,17 +41,17 @@ const recruiterSchema = new mongoose.Schema({
         select: false,
     }
 },
-{timestamps: true})
+    { timestamps: true })
 
-recruiterSchema.pre('save', async function(){
-    if(!this.isModified('passwordHash')) return;
+recruiterSchema.pre('save', async function () {
+    if (!this.isModified('passwordHash')) return;
 
-    await bcrypt.hash(this.passwordHash, 10);
+    this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
 })
 
-recruiterSchema.methods.comparePassword = async function(password){
+recruiterSchema.methods.comparePassword = async function (password) {
     return bcrypt.compare(password, this.passwordHash); // order matters always ! (password tocheck , password in document);
 }
 
 
-export const Recruiter = mongoose.model("Recruiter" , recruiterSchema);
+export const Recruiter = mongoose.model("Recruiter", recruiterSchema);

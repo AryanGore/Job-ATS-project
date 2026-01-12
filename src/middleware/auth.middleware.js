@@ -21,6 +21,7 @@ export const verifyJwt = asyncHandler(async(req, res, next) => {
     }
 
     try {
+        // console.log(token);
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         req.user = {
             id: decoded.id,

@@ -141,4 +141,9 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
+
+#test files
+run_dummy_test.js
+run_multi_test.js
+test_visibility.js
 # End of https://www.toptal.com/developers/gitignore/api/node

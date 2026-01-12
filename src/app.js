@@ -6,6 +6,7 @@ import { errorHandler } from './middleware/error.middleware.js';
 import jobRoutes from './routes/job.route.js';
 import authRoutes from './routes/auth.route.js';
 import applicantRoutes from './routes/applicant.route.js';
+import applicationRoutes from './routes/application.route.js';
 
 const app = express();
 
@@ -14,15 +15,16 @@ app.use(cors({
     credentials: true
 }))
 
-app.use(express.json({limit: "16kb"}));
-app.use(urlencoded({extended: true , limit: "16kb"}));
+app.use(express.json({ limit: "16kb" }));
+app.use(urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"))
 app.use(cookieParser());
 
 //routes here.
-app.use("/api/v1/jobs",jobRoutes);
+app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/applicants", applicantRoutes);
+app.use("/api/v1/applications", applicationRoutes);
 
 
 

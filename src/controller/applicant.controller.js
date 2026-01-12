@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
-import  asyncHandler  from '../utils/asyncHandler.js';
+import asyncHandler from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 import { Applicant } from "../models/applicant.model.js";
 import { Application } from "../models/application.model.js";
-import { generateAccessToken,generateRefreshToken } from "../utils/token.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
+import { JobProfile } from "../models/jobProfile.model.js";
+import bcrypt from "bcrypt";
 
 export const createApplicant = asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
@@ -58,33 +60,36 @@ export const createApplicant = asyncHandler(async (req, res) => {
 
 
     return res.status(201).cookie("refreshToken", refreshToken, cookieOptions).json(
-            new ApiResponse(
-                201,
-                { token: accessToken, applicant: safeApplicant },
-                "Applicant signed up successfully."
-            )
-        );
+        new ApiResponse(
+            201,
+            { token: accessToken, applicant: safeApplicant },
+            "Applicant signed up successfully."
+        )
+    );
 });
 
 
-export const applyToJob = asyncHandler( async(req, res)=> {
+export const applyToJob = asyncHandler(async (req, res) => {
 
     const { jobId } = req.params;
-    const { applicantId } = req.body;
+    const applicantId = req.user.id;
 
-    if(!mongoose.Types.ObjectId.isValid(jobId) || !mongoose.Types.ObjectId.isValid(applicantId)){
+    // console.log("received jovId : ", jobId);
+    // console.log("received applicantId : ", applicantId);
+
+    if (!mongoose.Types.ObjectId.isValid(jobId) || !mongoose.Types.ObjectId.isValid(applicantId)) {
         throw new ApiError(400, "Invalid Job Id or Applicant Id");
     }
 
     const fetchedJobProfile = await JobProfile.findById(jobId);
 
-    if(!fetchedJobProfile){
+    if (!fetchedJobProfile) {
         throw new ApiError(404, "JobProfile Not Found");
     }
 
     const fetchedApplicant = await Applicant.findById(applicantId);
 
-    if(!fetchedApplicant){
+    if (!fetchedApplicant) {
         throw new ApiError(404, "Applicant Not Found");
     }
 
@@ -93,7 +98,7 @@ export const applyToJob = asyncHandler( async(req, res)=> {
         appliedto: jobId
     })
 
-    if(existingApplication){
+    if (existingApplication) {
         throw new ApiError(409, "Application Already Under Review.");
     }
 
@@ -116,8 +121,6 @@ export const applyToJob = asyncHandler( async(req, res)=> {
         }
     )
     await newApplication.save();
-
-
 
     fetchedApplicant.appliedApplications.push(newApplication._id);
     await fetchedApplicant.save();

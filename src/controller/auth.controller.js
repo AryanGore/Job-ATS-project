@@ -2,30 +2,29 @@ import { Applicant } from "../models/applicant.model.js";
 import { Recruiter } from "../models/recruiter.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import  asyncHandler  from "../utils/asyncHandler.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
-export const applicantSignup = asyncHandler(async(req, res) => {
-    const {name , email, password } = req.body;
+export const applicantSignup = asyncHandler(async (req, res) => {
+    const { name, email, password } = req.body;
 
-    if(!name || !email || !password){
+    if (!name || !email || !password) {
         throw new ApiError(400, "All fields are required.");
     }
 
     const existingApplicant = await Applicant.findOne({ email });
 
-    if(existingApplicant){
+    if (existingApplicant) {
         throw new ApiError(400, "Applicant with same Email Already exists.");
     }
 
-    const Hashedpassword = await bcrypt.hash(password, 10);
 
     const applicant = await Applicant.create({
         name,
         email,
-        passwordHash: Hashedpassword
+        passwordHash: password
     })
 
     const responseApplicant = await Applicant.findById(applicant._id).select(" -passwordHash");
@@ -35,21 +34,21 @@ export const applicantSignup = asyncHandler(async(req, res) => {
     )
 })
 
-export const applicantLogin = asyncHandler(async(req, res) => {
-    const { email , password } = req.body;
+export const applicantLogin = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
 
-    if(!email || !password){
+    if (!email || !password) {
         throw new ApiError(400, "please enter email and password.");
     }
 
     const applicant = await Applicant.findOne({ email }).select("+passwordHash");
 
-    if(!applicant){
+    if (!applicant) {
         throw new ApiError(400, "Invalid email or password");
     }
     const isValidPassword = await applicant.comparePassword(password);
 
-    if(!isValidPassword){
+    if (!isValidPassword) {
         throw new ApiError(401, "Email or password is invalid.");
     }
 
@@ -83,10 +82,10 @@ export const applicantLogin = asyncHandler(async(req, res) => {
     )
 })
 
-export const refreshApplicantAccessToken = asyncHandler(async(req, res) => {
+export const refreshApplicantAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies?.refreshToken;
 
-    if(!incomingRefreshToken){
+    if (!incomingRefreshToken) {
         throw new ApiError(401, "Refresh Token Missing");
     }
 
@@ -101,7 +100,7 @@ export const refreshApplicantAccessToken = asyncHandler(async(req, res) => {
     const applicant = await Applicant.findById(decoded.id).select("+refreshToken");
 
 
-    if(!applicant || applicant.refreshToken !== incomingRefreshToken){
+    if (!applicant || applicant.refreshToken !== incomingRefreshToken) {
         throw new ApiError(401, "Refresh token is Invalid or Revoked.");
     }
 
@@ -117,10 +116,10 @@ export const refreshApplicantAccessToken = asyncHandler(async(req, res) => {
     )
 })
 
-export const applicantLogout = asyncHandler(async(req, res) => {
+export const applicantLogout = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies?.refreshToken;
 
-    if(!incomingRefreshToken){
+    if (!incomingRefreshToken) {
         return res.status(200).json(
             new ApiResponse(200, {}, "Applicant Logged Out Successfully.")
         )
@@ -128,9 +127,9 @@ export const applicantLogout = asyncHandler(async(req, res) => {
 
     const applicant = await Applicant.findOne({ refreshToken: incomingRefreshToken });
 
-    if(applicant){
+    if (applicant) {
         applicant.refreshToken = null;
-        await applicant.save({validateBeforeSave: false});
+        await applicant.save({ validateBeforeSave: false });
     }
 
     res.clearCookie("refreshToken", {
@@ -159,7 +158,7 @@ export const recruiterLogin = asyncHandler(async (req, res) => {
 
     if (!isValidPassword) throw new ApiError(401, "Invalid email or password");
 
-    const payload = { id: recruiter._id, role: "RECRUITER" };
+    const payload = { id: recruiter._id, role: "ADMIN" };
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
@@ -202,9 +201,9 @@ export const refreshRecruiterAccessToken = asyncHandler(async (req, res) => {
         // console.log("API response : ",incomingRefreshToken);
 
         // const recruiter = await Recruiter.findOne({_id: "695be8199acc3af9e1ea25b0"}).select("+refreshToken");
-        
+
         // console.log("Datavase response : ", recruiter.refreshToken); // debugging.
-        
+
         throw new ApiError(401, "Invalid or expired refresh token");
     }
 

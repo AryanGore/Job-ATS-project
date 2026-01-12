@@ -19,8 +19,7 @@ const seedRecruiter = async () => {
 
         const existingRecruiter = await Recruiter.findOne({ email: "admin@company.com" });
 
-        
-
+    
         if(existingRecruiter){
             console.log("Recruiter Already exists, please ask Authorities for credentials.");
             process.exit(0);
