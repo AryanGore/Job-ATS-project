@@ -1,10 +1,18 @@
 import dotenv from 'dotenv';
 import connectDB from './db/index.js';
 import { app } from './app.js';
+import { validateRequiredEnv } from './config/env.js';
 
 dotenv.config({
     path: './.env'
 })
+
+try {
+    validateRequiredEnv();
+} catch (error) {
+    console.error('Environment validation failed:', error.message);
+    process.exit(1);
+}
 
 connectDB()
 .then(() => {

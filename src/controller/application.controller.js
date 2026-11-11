@@ -6,6 +6,16 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { FSM } from "../utils/applicationFsm.js";
 
+const assertApplicationActionAllowed = (application, actionName) => {
+    if (!application) {
+        throw new ApiError(404, "Application Not Found.");
+    }
+
+    if (application.terminalStatus !== null) {
+        throw new ApiError(400, `Application already terminal; ${actionName} is not allowed.`);
+    }
+};
+
 export const advanceApplicationStage = asyncHandler(async (req, res) => {
 
     const { id } = req.params;
@@ -16,14 +26,20 @@ export const advanceApplicationStage = asyncHandler(async (req, res) => {
 
     const application = await Application.findById(id);
 
-    if (!application) {
-        throw new ApiError(404, "Job Application Not Found.")
-    }
+    assertApplicationActionAllowed(application, "advance");
 
     const appliedJob = await JobProfile.findById(application.appliedto);
 
     if (!appliedJob) {
         throw new ApiError(404, "Applied Job Profile Not Found.");
+    }
+
+    if (!Array.isArray(appliedJob.jobStages) || appliedJob.jobStages.length === 0) {
+        throw new ApiError(400, "This job has no defined stages for progression.");
+    }
+
+    if (application.currentStageIndex >= appliedJob.jobStages.length) {
+        throw new ApiError(400, "Application has already reached the end of the job process.");
     }
 
     const { nextStageIndex, terminalStatus } = FSM({
@@ -61,9 +77,7 @@ export const rejectApplication = asyncHandler(async (req, res) => {
 
     const application = await Application.findById(id);
 
-    if (!application) {
-        throw new ApiError(400, "Application Not Found!");
-    }
+    assertApplicationActionAllowed(application, "reject");
 
     const { nextStageIndex, terminalStatus } = FSM({
         currentStageIndex: application.currentStageIndex,
@@ -98,12 +112,11 @@ export const withdrawApplication = asyncHandler(async (req, res) => {
 
     const application = await Application.findById(id);
 
-    if (!application) {
-        throw new ApiError(404, "Application Not found.");
-    }
+    assertApplicationActionAllowed(application, "withdraw");
 
-    if (application.terminalStatus !== null) {
-        throw new ApiError(400, "Application Already in terminal State");
+    const applicantId = req.user.id;
+    if (application.appliedby.toString() !== applicantId) {
+        throw new ApiError(403, "You are not authorized to withdraw this application.");
     }
 
     const prevStageIndex = application.currentStageIndex;
@@ -115,7 +128,6 @@ export const withdrawApplication = asyncHandler(async (req, res) => {
     })
 
     application.terminalStatus = terminalStatus;
-
 
     application.history.push({
         action: "WITHDRAWN",
@@ -141,13 +153,7 @@ export const hireApplication = asyncHandler(async (req, res) => {
 
     const application = await Application.findById(id);
 
-    if (!application) {
-        throw new ApiError(404, "Application Not Found.")
-    }
-
-    if (application.terminalStatus !== null) {
-        throw new ApiError(400, "Application already at terminal State cannot hire.");
-    }
+    assertApplicationActionAllowed(application, "hire");
 
     const { terminalStatus } = FSM({
         currentStageIndex: application.currentStageIndex,
